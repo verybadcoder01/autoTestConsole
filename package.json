@@ -1,0 +1,19 @@
+{
+  "name": "testaddon",
+  "version": "1.0.0",
+  "main": "index.js",
+  "gypfile": true,
+  "scripts": {
+    "build": "node-gyp rebuild",
+    "clean": "node-gyp clean",
+    "install": "node-gyp rebuild"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "node-addon-api": "^5.0.0",
+    "path": "^0.12.7"
+  },
+  "description": ""
+}
