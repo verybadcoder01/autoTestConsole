@@ -17,11 +17,11 @@ using std::string;
 using std::wstring;
 using fs::path;
 
-const path B2C_TESTS = "C:\\Users\\yanbuhtin_d\\b2c_tests_pw\\tests";
-const path B2B_REGRESS = "C:\\Users\\yanbuhtin_d\\b2b_tests_pw\\regress b2b\\tests";
-const path B2B_SMOKE = "C:\\Users\\yanbuhtin_d\\b2b_tests_pw\\smoke_b2b\\tests";
+const path B2C_TESTS = "b2c_tests_pw/tests";
+const path B2B_REGRESS = "b2b_tests_pw/regress b2b/tests";
+const path B2B_SMOKE = "b2b_tests_pw/smoke_b2b/tests";
 
-string command; //что мы запустим при следующем вызове system()
+string command;
 
 path chosen;
 
