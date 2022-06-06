@@ -98,7 +98,7 @@ void runTest(const path& test){
     s += readFileName(test.string());
     addCommand(s);
     std::cout << "npx output: \n";
-    system(s.c_str());
+    system(command.c_str());
     removeLastCommand();
 }
 
