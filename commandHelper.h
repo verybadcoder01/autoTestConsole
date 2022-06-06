@@ -74,9 +74,7 @@ void addCommand(const string& add){
     if (!command.empty()){
         command += " && ";
     }
-    for (auto elem : add){
-        command.push_back(elem);
-    }
+    command += add;
 }
 
 void removeLastCommand(){
