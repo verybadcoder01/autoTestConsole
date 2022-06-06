@@ -31,7 +31,7 @@ struct Parser //получает названия всех тестов в фа�
                 if (ind != string::npos){
                     size_t startPos = curLine.find(L"'");
                     //std::wcout << "Position of " << "'" << " " << startPos << L"\n";
-                    if (startPos != string::npos){
+                    if (startPos != string::npos && startPos > ind){
                         res.push_back(curLine.substr(startPos + 1, curLine.rfind(L"'") - startPos - 1));
                     }
                 }
