@@ -21,13 +21,12 @@ const path B2C_TESTS = "b2c_tests_pw/tests";
 const path B2B_REGRESS = "b2b_tests_pw/regress b2b/tests";
 const path B2B_SMOKE = "b2b_tests_pw/smoke_b2b/tests";
 
-string command;
+string command; //что мы запустим при следующем вызове system()
 
 path chosen;
 
-string readFileName(const string& p){
-    string fullName = p.substr(p.find_last_of("/\\") + 1);
-    return fullName;
+string readFileName(const path& p){
+    return p.filename();
 }
 
 std::vector<string> getFileNames(const path& library){
