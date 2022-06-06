@@ -20,7 +20,7 @@ using fs::path;
 const path B2C_TESTS = "b2c_tests_pw/tests";
 const path B2B_REGRESS = "b2b_tests_pw/regress b2b/tests";
 const path B2B_SMOKE = "b2b_tests_pw/smoke_b2b/tests";
-
+const string NPX = "npx playwright test ";
 string command; //что мы запустим при следующем вызове system()
 
 path chosen;
@@ -61,16 +61,19 @@ string exec(const char* cmd) {
     std::array<char, 128> buffer;
     string result;
     std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
-    if (!pipe) {
+    if (!pipe) { //мы не смогли открыть командную строку
         throw std::runtime_error("_popen() failed!");
     }
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) { //получаем вывод
         result += buffer.data();
     }
     return result;
 }
 
 void addCommand(const string& add){
+    if (add.empty()){
+        return;
+    }
     if (!command.empty()){
         command += " && ";
     }
@@ -91,7 +94,7 @@ void removeLastCommand(){
 }
 
 void runTest(const path& test){
-    string s = "npx playwright test ";
+    string s = NPX;
     s += readFileName(test.string());
     addCommand(s);
     std::cout << "npx output: \n";
