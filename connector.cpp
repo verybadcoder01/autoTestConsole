@@ -5,10 +5,7 @@
 #include "commandHelper.h"
 using std::string;
 
-//здесь сплошная копипаста
-//refactoring really needed
-
-static napi_value chooseTestSet(napi_env env, napi_callback_info info){
+string getArgString(napi_env env, napi_callback_info info){
   size_t argc = 1;
   napi_value args[1];
   napi_get_cb_info(env, info, &argc, args, NULL, NULL);
@@ -20,81 +17,37 @@ static napi_value chooseTestSet(napi_env env, napi_callback_info info){
   size_t read;
   napi_get_value_string_utf8(env, args[0], choice, str_size, &read);
   string final_str = string(choice);
-  chooseTests(final_str);
-  napi_value result;
   delete [] choice;
+  return final_str;
+}
+
+static napi_value chooseTestSet(napi_env env, napi_callback_info info){
+  chooseTests(getArgString(env, info));
+  napi_value result;
   return result;
 }
 
 static napi_value addCommand(napi_env env, napi_callback_info info){
-  size_t argc = 1;
-  napi_value args[1];
-  napi_get_cb_info(env, info, &argc, args, NULL, NULL);
-  char* add;
-  size_t str_size;
-  napi_get_value_string_utf8(env, args[0], NULL, 0, &str_size);
-  str_size++; //нуль-терминатор
-  add = (char*)calloc(str_size + 1, sizeof(char));
-  size_t read;
-  napi_get_value_string_utf8(env, args[0], add, str_size, &read);
-  string final_str = string(add);
-  addCommand(final_str);
+  addCommand(getArgString(env, info));
   napi_value result;
-  delete [] add;
   return result;
 }
 
 static napi_value mkdir(napi_env env, napi_callback_info info){
-  size_t argc = 1;
-  napi_value args[1];
-  napi_get_cb_info(env, info, &argc, args, NULL, NULL);
-  char* dirName;
-  size_t str_size;
-  napi_get_value_string_utf8(env, args[0], NULL, 0, &str_size);
-  str_size++; //нуль-терминатор
-  dirName = (char*)calloc(str_size + 1, sizeof(char));
-  size_t read;
-  napi_get_value_string_utf8(env, args[0], dirName, str_size, &read);
-  string final_str = string(dirName);
-  mkdir(final_str);
+  mkdir(getArgString(env, info));
   napi_value result;
-  delete [] dirName;
   return result;
 }
 
 static napi_value runTest(napi_env env, napi_callback_info info){
-  size_t argc = 1;
-  napi_value args[1];
-  napi_get_cb_info(env, info, &argc, args, NULL, NULL);
-  char* testName;
-  size_t str_size;
-  napi_get_value_string_utf8(env, args[0], NULL, 0, &str_size);
-  str_size++;
-  testName = (char*)calloc(str_size + 1, sizeof(char));
-  size_t read;
-  napi_get_value_string_utf8(env, args[0], testName, str_size, &read);
-  string res = string(testName);
-  runTest(res);
+  runTest(getArgString(env, info));
   napi_value result;
-  delete [] testName;
   return result;
 }
 
 static napi_value printTests(napi_env env, napi_callback_info info){
-  size_t argc = 1;
-  napi_value args[1];
-  napi_get_cb_info(env, info, &argc, args, NULL, NULL);
-  char* pthToLib;
-  size_t str_size;
-  napi_get_value_string_utf8(env, args[0], NULL, 0, &str_size);
-  str_size++;
-  pthToLib = (char*)calloc(str_size + 1, sizeof(char));
-  size_t read;
-  napi_get_value_string_utf8(env, args[0], pthToLib, str_size, &read);
-  string res = string(pthToLib);
-  getFileNames(res);
+  printFileNames(getArgString(env, info));
   napi_value result;
-  delete [] pthToLib;
   return result;
 }
 
