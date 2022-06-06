@@ -6,7 +6,7 @@
 #include <map>
 #include <unistd.h>
 
-#if (!defined(_WIN32_) && !defined(_WIN32)) || (defined(_POSIX_VERSION))
+#if (defined(_POSIX_VERSION))
 #define _popen popen
 #define _pclose pclose
 #endif
