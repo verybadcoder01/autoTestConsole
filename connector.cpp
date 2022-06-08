@@ -22,9 +22,7 @@ string getArgString(napi_env env, napi_callback_info info){ //возвращае
   return final_str;
 }
 
-static napi_value testCases(napi_env  env, napi_callback_info info){
-  string arg = getArgString(env, info);
-  std::vector<wstring> t = Parser(chosen / arg).getAllTests();
+napi_value getArrayOfString(napi_env env, std::vector<string> t){ //возвращает жсовый массив с теми же значениями, что и переданный
   napi_value js_array, js_push_fn, js_array_item; //а теперь будет мясо
   napi_status status;
   status = napi_create_array(env, &js_array); //создаем жсовыый массив
@@ -40,10 +38,16 @@ static napi_value testCases(napi_env  env, napi_callback_info info){
   return js_array;
 }
 
+static napi_value testCases(napi_env  env, napi_callback_info info){
+  string arg = getArgString(env, info);
+  std::vector<string> t = Parser(chosen / arg).getAllTests();
+  return getArrayOfString(env, t);
+}
+
 static napi_value chooseTestSet(napi_env env, napi_callback_info info){
-  chooseTests(getArgString(env, info));
-  napi_value result;
-  return result;
+  string arg = getArgString(env, info);
+  std::vector<string> t = chooseTests(arg);
+  return getArrayOfString(env, t);
 }
 
 static napi_value addCommand(napi_env env, napi_callback_info info){
