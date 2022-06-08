@@ -47,7 +47,7 @@ void printFileNames(const path& library){ //выводит имена всех �
     }
 }
 
-void chooseTests(const string& name){ //устанавливает место работы (папку с тестами). Записывает cd в это место
+std::vector<string> chooseTests(const string& name){ //устанавливает место работы (папку с тестами). Записывает cd в это место
     if (name == "b2c"){
         chosen = B2C_TESTS;
     } else if (name == "b2b-smoke"){
@@ -57,8 +57,8 @@ void chooseTests(const string& name){ //устанавливает место р
     } else {
         assert(false);
     }
-    printFileNames(chosen);
     command = "cd " + chosen.string();
+    return getFileNames(chosen);
 }
 
 string exec(const char* cmd) { //запускает команду и возвращает вывод командной строки; почти не используется
