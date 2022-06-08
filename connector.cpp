@@ -2,6 +2,7 @@
 #include <string>
 #include <assert.h>
 #include <node_api.h>
+#include <vector>
 #include "commandHelper.h"
 using std::string;
 
@@ -19,6 +20,24 @@ string getArgString(napi_env env, napi_callback_info info){ //возвращае
   string final_str = string(choice); 
   delete [] choice; //чтобы память не текла
   return final_str;
+}
+
+static napi_value testCases(napi_env  env, napi_callback_info info){
+  string arg = getArgString(env, info);
+  std::vector<wstring> t = Parser(chosen / arg).getAllTests();
+  napi_value js_array, js_push_fn, js_array_item; //а теперь будет мясо
+  napi_status status;
+  status = napi_create_array(env, &js_array); //создаем жсовыый массив
+  assert(status == napi_ok);
+  status = napi_get_named_property(env, js_array, "push", &js_push_fn); //получаем "указатель" на функцию push 
+  assert(status == napi_ok);
+  for (auto &elem : t){ //поэлементно добавляем в жсовый массив наш
+    status = napi_create_string_utf8(env, elem.c_str(), elem.size(), &js_array_item); //не будет работать на винде!
+    assert(status == napi_ok);
+    status = napi_call_function(env, js_array, js_push_fn, 1, &js_array_item, NULL); //собственно пушим элемент
+    assert(status == napi_ok);
+  }
+  return js_array;
 }
 
 static napi_value chooseTestSet(napi_env env, napi_callback_info info){
@@ -73,7 +92,7 @@ static napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor desc1 = DECLARE_NAPI_METHOD("chooseTestSet", chooseTestSet);
   status = napi_define_properties(env, exports, 1, &desc1);
   napi_property_descriptor desc2 = DECLARE_NAPI_METHOD("addCommand", addCommand);
-  status = napi_define_properties(env, exports, 1, &desc2);\
+  status = napi_define_properties(env, exports, 1, &desc2);
   napi_property_descriptor desc3 = DECLARE_NAPI_METHOD("mkdir", mkdir);
   status = napi_define_properties(env, exports, 1, &desc3);
   napi_property_descriptor desc4 = DECLARE_NAPI_METHOD("runTest", runTest);
@@ -84,6 +103,8 @@ static napi_value Init(napi_env env, napi_value exports) {
   status = napi_define_properties(env, exports, 1, &desc6);
   napi_property_descriptor desc7 = DECLARE_NAPI_METHOD("run", run);
   status = napi_define_properties(env, exports, 1, &desc7);
+  napi_property_descriptor desc8 = DECLARE_NAPI_METHOD("getTestsFromFile", testCases);
+  status = napi_define_properties(env, exports, 1, &desc8);
   assert(status == napi_ok);
   return exports;
 }
