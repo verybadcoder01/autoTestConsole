@@ -1,3 +1,5 @@
+//или не работает, или я тупой. Поди разбери этот кодировочный колхоз и какие строки там использовать
+
 #include <bits/stdc++.h>
 
 namespace fs = std::filesystem;
@@ -38,11 +40,11 @@ struct winParser
 };
 
 
-void resetStreamOrientation(){ //делает поток вывода нейтральным для cout и wcout
+int resetStreamOrientation(){ //делает поток вывода нейтральным для cout и wcout
     int mode = fwide(stdout, 0);
     if (mode == 0){
-        return;
+        return 0;
     }
     freopen(NULL, "w", stdout);
-    mode = fwide(stdout, 0);
+    return fwide(stdout, 0);
 }
