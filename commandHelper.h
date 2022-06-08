@@ -10,6 +10,9 @@
 #if (defined(_POSIX_VERSION))
 #define _popen popen
 #define _pclose pclose
+#include "parser.h"
+#elif (defined(_WIN32) || defined(_WIN32_))
+#include "winFunctions.h"
 #endif
 
 
