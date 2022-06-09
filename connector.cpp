@@ -93,14 +93,14 @@ static napi_value createTemplate(napi_env env, napi_callback_info info){ //со�
   return result;
 }
 
-static napi_value addExistingTest(napi_env env, napi_callback_info info){ //копирует существующий тест в папку шаблона; первый аргумент - название шаблона, второй - название теста 
+static napi_value addExistingTest(napi_env env, napi_callback_info info){ //записывать в шаблон существующий тест
   vector<string> args = getArgString(env, info, 2);
   templs[args[0]].addExistingTest(args[1]);
   napi_value result;
   return result;
 }
 
-static napi_value removeExistingTest(napi_env env, napi_callback_info info){
+static napi_value removeExistingTest(napi_env env, napi_callback_info info){ //удаляет тест из шаблона с заданным именем
   vector<string> args = getArgString(env, info, 2);
   templs[args[0]].removeExistingTest(args[1]);
   napi_value result;
@@ -114,7 +114,7 @@ static napi_value run(napi_env env, napi_callback_info info){ //запускае
   return result;
 }
 
-static napi_value runAllTestsInTemplate(napi_env env, napi_callback_info info){
+static napi_value runAllTestsInTemplate(napi_env env, napi_callback_info info){ //запускает все тесты в шаблоне
   vector<string> args = getArgString(env, info, 1);
   if (templs.find(args[0]) == templs.end()){
     throw std::runtime_error("template with this name does not exist");
@@ -124,7 +124,7 @@ static napi_value runAllTestsInTemplate(napi_env env, napi_callback_info info){
   return result;
 }
 
-static napi_value deleteTemplate(napi_env env, napi_callback_info info){
+static napi_value deleteTemplate(napi_env env, napi_callback_info info){ //удаляет шаблон
   string arg = getArgString(env, info, 1)[0];
   removeTemplate(arg);
   napi_value result;
