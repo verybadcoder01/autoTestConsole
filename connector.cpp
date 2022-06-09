@@ -4,25 +4,28 @@
 #include <node_api.h>
 #include <vector>
 #include "commandHelper.h"
-using std::string;
+using std::string, std::vector;
 
-string getArgString(napi_env env, napi_callback_info info){ //возвращает строку, переданную в js-функции в качестве аргумента. Да, это надо, тк напрямую получить данную строку нельзя
-  size_t argc = 1;
-  napi_value args[1];
+vector<string> getArgString(napi_env env, napi_callback_info info, size_t argc){ //возвращает строку, переданную в js-функции в качестве аргумента. Да, это надо, тк напрямую получить данную строку нельзя
+  napi_value args[argc];
   napi_get_cb_info(env, info, &argc, args, NULL, NULL);
-  char* choice; //напи, увы, не умеет просто так в std::string
-  size_t str_size;
-  napi_get_value_string_utf8(env, args[0], NULL, 0, &str_size);
-  str_size++; //нуль-терминатор
-  choice = (char*)calloc(str_size + 1, sizeof(char));
-  size_t read;
-  napi_get_value_string_utf8(env, args[0], choice, str_size, &read);
-  string final_str = string(choice); 
-  delete [] choice; //чтобы память не текла
-  return final_str;
+  vector<string> res;
+  for (int i = 0; i < argc; ++i){
+    char* choice; //напи, увы, не умеет просто так в std::string
+    size_t str_size;
+    napi_get_value_string_utf8(env, args[i], NULL, 0, &str_size);
+    str_size++; //нуль-терминатор
+    choice = (char*)calloc(str_size + 1, sizeof(char));
+    size_t read;
+    napi_get_value_string_utf8(env, args[i], choice, str_size, &read);
+    string final_str = string(choice); 
+    res.push_back(final_str);
+    delete [] choice; //чтобы память не текла
+  }
+  return res;
 }
 
-napi_value getArrayOfString(napi_env env, std::vector<string> t){ //возвращает жсовый массив с теми же значениями, что и переданный
+napi_value getArrayOfString(napi_env env, std::vector<string> t){ //возвращает жсовый массив с теми же значениями, что и наш
   napi_value js_array, js_push_fn, js_array_item; //а теперь будет мясо
   napi_status status;
   status = napi_create_array(env, &js_array); //создаем жсовыый массив
@@ -39,43 +42,60 @@ napi_value getArrayOfString(napi_env env, std::vector<string> t){ //возвра
 }
 
 static napi_value testCases(napi_env  env, napi_callback_info info){
-  string arg = getArgString(env, info);
+  string arg = getArgString(env, info, 1)[0];
   std::vector<string> t = Parser(chosen / arg).getAllTests();
   return getArrayOfString(env, t);
 }
 
 static napi_value chooseTestSet(napi_env env, napi_callback_info info){
-  string arg = getArgString(env, info);
+  string arg = getArgString(env, info, 1)[0];
   std::vector<string> t = chooseTests(arg);
   return getArrayOfString(env, t);
 }
 
 static napi_value addCommand(napi_env env, napi_callback_info info){
-  addCommand(getArgString(env, info));
+  addCommand(getArgString(env, info, 1)[0]);
   napi_value result;
   return result;
 }
 
 static napi_value mkdir(napi_env env, napi_callback_info info){
-  mkdir(getArgString(env, info));
+  mkdir(getArgString(env, info, 1)[0]);
   napi_value result;
   return result;
 }
 
 static napi_value runTest(napi_env env, napi_callback_info info){
-  runTest(getArgString(env, info));
+  runTest(getArgString(env, info, 1)[0]);
   napi_value result;
   return result;
 }
 
 static napi_value printTests(napi_env env, napi_callback_info info){
-  printFileNames(getArgString(env, info));
+  printFileNames(getArgString(env, info, 1)[0]);
   napi_value result;
   return result;
 }
 
 static napi_value removeLastCommand(napi_env env, napi_callback_info info){
   removeLastCommand();
+  napi_value result;
+  return result;
+}
+
+static napi_value createTemplate(napi_env env, napi_callback_info info){
+  string arg = getArgString(env, info, 1)[0];
+  if (templs.find(arg) != templs.end()){
+    throw std::runtime_error("template with this name already exists");
+  }
+  templs[arg] = Template(chosen, arg);
+  napi_value result;
+  return result;
+}
+
+static napi_value addExistingTest(napi_env env, napi_callback_info info){
+  vector<string> args = getArgString(env, info, 2);
+  templs[args[0]].addExistingTest(args[1]);
   napi_value result;
   return result;
 }
@@ -109,6 +129,10 @@ static napi_value Init(napi_env env, napi_value exports) {
   status = napi_define_properties(env, exports, 1, &desc7);
   napi_property_descriptor desc8 = DECLARE_NAPI_METHOD("getTestsFromFile", testCases);
   status = napi_define_properties(env, exports, 1, &desc8);
+  napi_property_descriptor desc9 = DECLARE_NAPI_METHOD("createTemplate", createTemplate);
+  status = napi_define_properties(env, exports, 1, &desc9);
+  napi_property_descriptor desc10 = DECLARE_NAPI_METHOD("addExistingTest", addExistingTest);
+  status = napi_define_properties(env, exports, 1, &desc10);
   assert(status == napi_ok);
   return exports;
 }
