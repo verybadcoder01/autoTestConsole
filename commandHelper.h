@@ -7,7 +7,7 @@
 #include <map>
 #include <unistd.h>
 #include "template.h"
-//TODO: шаблоны (набор тестов, запускающийся вместе); подумать над лайв-коснолькой с результатами; произвольный множественный выбор тестов
+//TODO: сделать из шаблонов чистые жсоны;
 
 #if (defined(_POSIX_VERSION))
 #define _popen popen
@@ -136,9 +136,9 @@ void runAllTests(){ //запускает все тесты в текущей р�
     }
 }
 
-void removeTemplate(const string& name){
+void removeTemplate(const string& name){ //удаляет шаблон по названию
     //std::cout << command << "\n";
-    if (templs.find(name) == templs.end()){
+    if (templs.find(name) == templs.end()){ //удалять нечего
         throw std::runtime_error("template with this name does not exist");
     }
     addCommand(string("rm -rf " + name));
