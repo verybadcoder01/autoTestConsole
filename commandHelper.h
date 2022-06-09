@@ -103,6 +103,7 @@ void runTest(const string& test){ //принимает путь, запуска�
     s += readFileName(test);
     addCommand(s);
     std::cout << "npx output: \n";
+    std::cout << command << "\n";
     system(command.c_str());
     removeLastCommand();
 }
@@ -119,4 +120,16 @@ void runAllTests(){ //запускает все тесты в текущей р�
     for (auto &p : fs::directory_iterator(chosen)){
         runTest(p.path().string());
     }
+}
+
+void removeTemplate(const string& name){
+    //std::cout << command << "\n";
+    if (templs.find(name) == templs.end()){
+        throw std::runtime_error("template with this name does not exist");
+    }
+    addCommand(string("rm -rf " + name));
+    //std::cout << command << "\n";
+    system(command.c_str());
+    templs.erase(name);
+    removeLastCommand();
 }
