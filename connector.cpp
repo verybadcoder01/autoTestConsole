@@ -6,7 +6,7 @@
 #include "commandHelper.h"
 using std::string, std::vector;
 
-vector<string> getArgString(napi_env env, napi_callback_info info, size_t argc){ //возвращает строку, переданную в js-функции в качестве аргумента. Да, это надо, тк напрямую получить данную строку нельзя
+vector<string> getArgString(napi_env env, napi_callback_info info, size_t argc){ //возвращает строки, переданные в js-функции в качестве аргумента
   napi_value args[argc];
   napi_get_cb_info(env, info, &argc, args, NULL, NULL);
   vector<string> res;
@@ -83,9 +83,9 @@ static napi_value removeLastCommand(napi_env env, napi_callback_info info){
   return result;
 }
 
-static napi_value createTemplate(napi_env env, napi_callback_info info){
+static napi_value createTemplate(napi_env env, napi_callback_info info){ //создает шаблон с переданным именем
   string arg = getArgString(env, info, 1)[0];
-  if (templs.find(arg) != templs.end()){
+  if (templs.find(arg) != templs.end()){ //не допускаются шаблоны с одинаковым именем
     throw std::runtime_error("template with this name already exists");
   }
   templs[arg] = Template(chosen, arg);
@@ -93,7 +93,7 @@ static napi_value createTemplate(napi_env env, napi_callback_info info){
   return result;
 }
 
-static napi_value addExistingTest(napi_env env, napi_callback_info info){
+static napi_value addExistingTest(napi_env env, napi_callback_info info){ //копирует существующий тест в папку шаблона; первый аргумент - название шаблона, второй - название теста 
   vector<string> args = getArgString(env, info, 2);
   templs[args[0]].addExistingTest(args[1]);
   napi_value result;
@@ -106,6 +106,21 @@ static napi_value run(napi_env env, napi_callback_info info){ //запускае
   napi_value result;
   return result;
 }
+
+static napi_value runAllTestsInTemplate(napi_env env, napi_callback_info info){
+  vector<string> args = getArgString(env, info, 1);
+  templs[args[0]].runAllIncluded();
+  napi_value result;
+  return result;
+}
+
+static napi_value deleteTemplate(napi_env env, napi_callback_info info){
+  string arg = getArgString(env, info, 1)[0];
+  removeTemplate(arg);
+  napi_value result;
+  return result;
+}
+
 //дефайн для удобства
 #define DECLARE_NAPI_METHOD(name, func) \
   { name, 0, func, 0, 0, 0, napi_default, 0 }
@@ -133,6 +148,10 @@ static napi_value Init(napi_env env, napi_value exports) {
   status = napi_define_properties(env, exports, 1, &desc9);
   napi_property_descriptor desc10 = DECLARE_NAPI_METHOD("addExistingTest", addExistingTest);
   status = napi_define_properties(env, exports, 1, &desc10);
+  napi_property_descriptor desc11 = DECLARE_NAPI_METHOD("runTestsInTemplate", runAllTestsInTemplate);
+  status = napi_define_properties(env, exports, 1, &desc11);
+  napi_property_descriptor desc12 = DECLARE_NAPI_METHOD("deleteTemplate", deleteTemplate);
+  status = napi_define_properties(env, exports, 1, &desc12);
   assert(status == napi_ok);
   return exports;
 }
