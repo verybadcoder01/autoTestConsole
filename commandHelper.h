@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <map>
 #include <unistd.h>
+#include "template.h"
+//TODO: шаблоны (набор тестов, запускающийся вместе); подумать над лайв-коснолькой с результатами; произвольный множественный выбор тестов
 
 #if (defined(_POSIX_VERSION))
 #define _popen popen
@@ -14,7 +16,6 @@
 #elif (defined(_WIN32) || defined(_WIN32_))
 #include "winFunctions.h"
 #endif
-
 
 namespace fs = std::filesystem;
 using std::string;
@@ -28,7 +29,7 @@ const string NPX = "npx playwright test ";
 string command; //что мы запустим при следующем вызове system()
 
 path chosen; //текущая рабочая папка
-
+std::map <string, Template> templs;
 string readFileName(const path& p){ //принимает путь к файлу и возвращет только имя файла
     return p.filename();
 }
@@ -97,9 +98,9 @@ void removeLastCommand(){ //удаляет последнюю записанну
     command.pop_back(); //стереть пробел
 }
 
-void runTest(const path& test){ //принимает путь, запускает тест, который там лежит.
+void runTest(const string& test){ //принимает путь, запускает тест, который там лежит.
     string s = NPX;
-    s += readFileName(test.string());
+    s += readFileName(test);
     addCommand(s);
     std::cout << "npx output: \n";
     system(command.c_str());
@@ -116,6 +117,6 @@ void mkdir(const string &name){ //создает директорию с име�
 
 void runAllTests(){ //запускает все тесты в текущей рабчоей папке
     for (auto &p : fs::directory_iterator(chosen)){
-        runTest(p);
+        runTest(p.path().string());
     }
 }
