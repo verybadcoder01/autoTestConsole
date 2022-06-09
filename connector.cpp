@@ -100,6 +100,13 @@ static napi_value addExistingTest(napi_env env, napi_callback_info info){ //ко
   return result;
 }
 
+static napi_value removeExistingTest(napi_env env, napi_callback_info info){
+  vector<string> args = getArgString(env, info, 2);
+  templs[args[0]].removeExistingTest(args[1]);
+  napi_value result;
+  return result;
+}
+
 static napi_value run(napi_env env, napi_callback_info info){ //запускает записанную команду(не переданную в аргументе, а именно записанную ранее в command)
   string s = exec(command.c_str());
   std::cout << s << "\n";
@@ -109,6 +116,9 @@ static napi_value run(napi_env env, napi_callback_info info){ //запускае
 
 static napi_value runAllTestsInTemplate(napi_env env, napi_callback_info info){
   vector<string> args = getArgString(env, info, 1);
+  if (templs.find(args[0]) == templs.end()){
+    throw std::runtime_error("template with this name does not exist");
+  }
   templs[args[0]].runAllIncluded();
   napi_value result;
   return result;
@@ -152,6 +162,8 @@ static napi_value Init(napi_env env, napi_value exports) {
   status = napi_define_properties(env, exports, 1, &desc11);
   napi_property_descriptor desc12 = DECLARE_NAPI_METHOD("deleteTemplate", deleteTemplate);
   status = napi_define_properties(env, exports, 1, &desc12);
+  napi_property_descriptor desc13 = DECLARE_NAPI_METHOD("removeTest", removeExistingTest);
+  status = napi_define_properties(env, exports, 1, &desc13);
   assert(status == napi_ok);
   return exports;
 }
