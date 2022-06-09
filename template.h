@@ -1,4 +1,4 @@
-#pragma once;
+#pragma once
 #include <bits/stdc++.h>
 #include "commandHelper.h"
 namespace fs = std::filesystem;
@@ -11,7 +11,7 @@ extern path chosen;
 extern string command;
 std::vector<string> chooseTests(const string& name);
 void mkdir(const string &name);
-void runAllTests();
+void runTest(const string& test);
 void addCommand(const string& add);
 void removeLastCommand();
 //end of forward declarations
@@ -53,20 +53,24 @@ struct Template
     }
 
     void addExistingTest(const string& test){
-        addCommand(string("cp " + test + " " + name));
-        std::cout << command << "\n";
-        system(command.c_str());
-        removeLastCommand();
+        // addCommand(string("cp " + test + " " + name)); Я не знаю, может ли это понадобится, но не хочу писать заново
+        // std::cout << command << "\n";
+        // system(command.c_str());
+        // removeLastCommand();
         includedTests.push_back(test);
+    }
+
+    void removeExistingTest(const string& test){
+        if (find(includedTests.begin(), includedTests.end(), test) == includedTests.end()){
+            return;
+        }
+        includedTests.erase(find(includedTests.begin(), includedTests.end(), test));
     }
     
     void runAllIncluded(){
-        path location = chosen;
-        chosen /= name;
-        addCommand(string("cd " + name));
-        runAllTests();
-        chosen = location;
-        removeLastCommand();
+        for (const auto &str : includedTests){
+            runTest(str);
+        }
     }
 
 };
