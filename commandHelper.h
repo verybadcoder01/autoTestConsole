@@ -75,6 +75,19 @@ string exec(const char* cmd) { //запускает команду и возвр
     return result;
 }
 
+void liveExec(const char* cmd){ //horrible!
+    std::array<char, 128> buffer;
+    string result;
+    std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
+    if (!pipe) { //не получилось открыть командную строку
+        throw std::runtime_error("_popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) { //получаем вывод
+        result += buffer.data();
+        std::cout << result;
+    }
+}
+
 void addCommand(const string& add){ //записывает командну на выполнение. Все команды пишутся в одну строку и разделяются &&
     if (add.empty()){
         return;
@@ -102,9 +115,10 @@ void runTest(const string& test){ //принимает путь, запуска�
     string s = NPX;
     s += readFileName(test);
     addCommand(s);
-    std::cout << "npx output: \n";
     std::cout << command << "\n";
-    system(command.c_str());
+    std::cout << "npx output: \n";
+    string r = exec(command.c_str());
+    std::cout << r << "\n";
     removeLastCommand();
 }
 
