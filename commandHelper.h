@@ -7,7 +7,7 @@
 #include <map>
 #include <unistd.h>
 #include "template.h"
-//TODO: сделать из шаблонов чистые жсоны;
+//TODO: сделать из шаблонов чистые жсоны; начать делать авторизацию в гитлабе;
 
 #if (defined(_POSIX_VERSION))
 #define _popen popen
@@ -118,8 +118,7 @@ void removeLastCommand(){ //удаляет последнюю записанну
 
 string runTest(const string& test){ //принимает путь, запускает тест, который там лежит.
     string s = NPX;
-    s += "tests/";
-    s += readFileName(test);
+    s += test;
     addCommand(s);
     std::cout << command << "\n";
     std::cout << "npx output: \n";
