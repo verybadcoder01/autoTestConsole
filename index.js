@@ -11,9 +11,17 @@ function writeToFile(fileName, array){
 addon.chooseTestSet(TestSets.B2C);
 addon.createTemplate("templ1");
 addon.addExistingTest("templ1", "rejected.spec.ts");
+addon.addExistingTest("templ1", "search.spec.ts");
 var arr = addon.runTestsInTemplate("templ1");
-writeToFile("out.rtf", arr);
+writeToFile("out.txt", arr);
+addon.createTemplate("templ2");
+addon.addExistingTest("templ2", "menu.spec.ts");
+var arr = addon.runTestsInTemplate("templ1");
+writeToFile("out.txt", arr);
+addon.removeTest("templ1", "rejected.spec.ts");
+addon.createTemplate("templ3");
 addon.deleteTemplate("templ1");
-
+addon.deleteTemplate("templ2");
+addon.deleteTemplate("templ3");
 
 console.log("ok");
