@@ -91,9 +91,7 @@ struct Template
             }
         }
         in.close();
-        std::ofstream clear("templates.txt"); //удаляем все из файла
-        clear.close();
-        std::ofstream out("templates.txt");
+        std::ofstream out("templates.txt"); //сначала все удаляем из файла
         for (int i = 0; i < (int)prevContent.size(); ++i){
             if (i != (int)prevContent.size() - 1){
                 out << prevContent[i] << "\n";
@@ -113,6 +111,40 @@ struct Template
             return;
         }
         includedTests.erase(find(includedTests.begin(), includedTests.end(), test));
+        std::ifstream in("templates.txt");
+        string curLine;
+        bool isPrevLine = false;
+        std::vector<string> content;
+        while (getline(in, curLine)){
+            if (isPrevLine){
+                int pos = curLine.find(test);
+                if (pos == string::npos){
+                    throw std::runtime_error("templates.txt has been corrupted");
+                }
+                string result;
+                for (int i = 0; i < (int)curLine.size(); ++i){
+                    if (i >= pos && i <= pos + (int)test.size()){
+                        continue;
+                    }
+                    result.push_back(curLine[i]);
+                }
+                content.push_back(result);
+                isPrevLine = false;
+            } else {
+                if (curLine[0] == 'n'){
+                    string cur = curLine.substr(curLine.find(':') + 1);
+                    if (cur == name){
+                        isPrevLine = true;
+                    }
+                }
+                content.push_back(curLine);
+            }
+        }
+        std::ofstream out("templates.txt");
+        for (const auto& i : content){
+            out << i << "\n";
+        }
+        out.close();
     }
     
     string runAllIncluded(){
