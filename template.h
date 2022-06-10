@@ -11,7 +11,7 @@ extern path chosen;
 extern string command;
 std::vector<string> chooseTests(const string& name);
 void mkdir(const string &name);
-void runTest(const string& test);
+string runTest(const string& test);
 void addCommand(const string& add);
 void removeLastCommand();
 //end of forward declarations
@@ -67,10 +67,18 @@ struct Template
         includedTests.erase(find(includedTests.begin(), includedTests.end(), test));
     }
     
-    void runAllIncluded(){
+    string runAllIncluded(){
+        addCommand("cd ..");
+        string alltests;
+        string res;
         for (const auto &str : includedTests){
-            runTest(str);
+            alltests += "tests/";
+            alltests += str;
+            alltests += " ";
         }
+        res = runTest(alltests);
+        removeLastCommand();
+        return res;
     }
 
 };
