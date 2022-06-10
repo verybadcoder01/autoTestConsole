@@ -5,6 +5,8 @@ namespace fs = std::filesystem;
 using std::string;
 using fs::path;
 
+const string INFORMATION = "templates.txt";
+
 //forward declaration (это плохо?)
 extern const path B2C_TESTS, B2B_SMOKE, B2B_REGRESS;
 extern path chosen;
@@ -59,7 +61,7 @@ struct Template
             return;
         }
         includedTests.push_back(test);
-        std::ifstream in("templates.txt");
+        std::ifstream in(INFORMATION);
         bool isPrevLine = false, isFound = false;
         string curLine;
         std::vector<string> prevContent, nextContent;
@@ -91,7 +93,7 @@ struct Template
             }
         }
         in.close();
-        std::ofstream out("templates.txt"); //сначала все удаляем из файла
+        std::ofstream out(INFORMATION); //сначала все удаляем из файла
         for (int i = 0; i < (int)prevContent.size(); ++i){
             if (i != (int)prevContent.size() - 1){
                 out << prevContent[i] << "\n";
@@ -111,7 +113,7 @@ struct Template
             return;
         }
         includedTests.erase(find(includedTests.begin(), includedTests.end(), test));
-        std::ifstream in("templates.txt");
+        std::ifstream in(INFORMATION);
         string curLine;
         bool isPrevLine = false;
         std::vector<string> content;
@@ -140,7 +142,8 @@ struct Template
                 content.push_back(curLine);
             }
         }
-        std::ofstream out("templates.txt");
+        in.close();
+        std::ofstream out(INFORMATION);
         for (const auto& i : content){
             out << i << "\n";
         }
@@ -148,6 +151,9 @@ struct Template
     }
     
     string runAllIncluded(){
+        if (includedTests.empty()){
+            return "no tests in this template";
+        }
         addCommand("cd ..");
         string alltests;
         string res;
@@ -162,7 +168,7 @@ struct Template
     }
 
     void generateSelfDescribingFile(){ //добавляет шаблон в файл templates.txt в виде name:<name>, includedTests:<test1; test2; ...>, baseDir:<baseDir>
-        std::ofstream out("templates.txt", std::ios_base::app);
+        std::ofstream out(INFORMATION, std::ios_base::app);
         out << "name:" << name << "\n";
         out << "includedTests:";
         for (int i = 0; i < (int)includedTests.size(); ++i){
@@ -171,6 +177,41 @@ struct Template
         out << "\n";
         out << "baseDir:" << baseDir.string();
         out << "\n";
+        out.close();
+    }
+
+    void removeInformation(){ //удаляет информацию о данном шаблоне из templates.txt
+        std::ifstream in(INFORMATION);
+        if (!in){
+            throw std::runtime_error("templates.txt does not exist. Something has gone horribly wrong");
+        }
+        string curLine;
+        bool isFound = false;
+        std::vector <string> content;
+        while (getline(in, curLine)){
+            if (isFound){
+                if (curLine[0] == 'n'){
+                    isFound = false;
+                    content.push_back(curLine);
+                } else {
+                    continue;
+                }
+            } else {
+                if (curLine[0] == 'n'){
+                    string cur = curLine.substr(curLine.find(':') + 1);
+                    if (cur == name){
+                        isFound = true;
+                        continue;
+                    }
+                }
+                content.push_back(curLine);
+            }
+        }
+        in.close();
+        std::ofstream out(INFORMATION);
+        for (const auto& i : content){
+            out << i << "\n";
+        }
         out.close();
     }
 
