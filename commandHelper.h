@@ -7,7 +7,7 @@
 #include <map>
 #include <unistd.h>
 #include "template.h"
-//TODO: сделать из шаблонов чистые жсоны; начать делать авторизацию в гитлабе;
+//TODO: потестировать имеющийся функционал; начать делать авторизацию в гитлабе;
 
 #if (defined(_POSIX_VERSION))
 #define _popen popen
@@ -136,15 +136,11 @@ void mkdir(const string &name){ //создает директорию с име�
 }
 
 void removeTemplate(const string& name){ //удаляет шаблон по названию
-    //std::cout << command << "\n";
     if (templs.find(name) == templs.end()){ //удалять нечего
         throw std::runtime_error("template with this name does not exist");
     }
-    addCommand(string("rm -rf " + name));
-    //std::cout << command << "\n";
-    system(command.c_str());
+    templs[name].removeInformation();
     templs.erase(name);
-    removeLastCommand();
 }
 
 void openLastReport(){
@@ -153,4 +149,32 @@ void openLastReport(){
     system(command.c_str());
     removeLastCommand();
     removeLastCommand();
+}
+
+void findStoredTemplates(){
+    std::ifstream in("templates.txt");
+    if (!in){
+        throw std::runtime_error("templates.txt not found. Something has gone horribly wrong");
+    }
+    string curLine, curName, curBaseDir;
+    std::vector <string> curTests;
+    while(getline(in, curLine)){
+        if (curLine[0] == 'n'){ //n for "name"
+            curName = curLine.substr(curLine.find(':') + 1);
+        } else if (curLine[0] == 'i'){ //i for "includedTests" aka все тесты, бывшие в шаблоне
+            int pos = curLine.find(':') + 1;
+            string tmp;
+            for (; pos < (int)curLine.size(); ++pos){
+                if (curLine[pos] == ';'){ //сепаратор. Названия тестов разделяются ;
+                    curTests.push_back(tmp);
+                    tmp.clear();
+                }
+                tmp.push_back(curLine[pos]);
+            }
+        } else if (curLine[0] == 'b'){ //b for "baseDir"; это последняя строка в описании шаблона. Теперь его можно создавать
+            curBaseDir = curLine.substr(curLine.find(':') + 1);
+            templs[curName] = Template(curName, curTests, curBaseDir); //этот контструктор не вызывает создание информации
+            curTests.clear();
+        }
+    }
 }
