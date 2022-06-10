@@ -75,17 +75,22 @@ string exec(const char* cmd) { //запускает команду и возвр
     return result;
 }
 
-void liveExec(const char* cmd){ //horrible!
+string liveExec(const char* cmd){ //horrible!
     std::array<char, 128> buffer;
     string result;
     std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
     if (!pipe) { //не получилось открыть командную строку
         throw std::runtime_error("_popen() failed!");
     }
+    string s;
+    std::regex remove{R"((\x9B|\x1B\[)[0-?]*[ -\/]*[@-~])"}; //регулярка на все escape-последовательности (последствия считывания из терминала)
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) { //получаем вывод
-        result += buffer.data();
-        std::cout << result;
+        s = buffer.data();
+        s = std::regex_replace(s, remove, ""); //убираем их
+        result += s;
+        std::cout << s; //лайв-вывод результатов
     }
+    return result;
 }
 
 void addCommand(const string& add){ //записывает командну на выполнение. Все команды пишутся в одну строку и разделяются &&
@@ -111,15 +116,16 @@ void removeLastCommand(){ //удаляет последнюю записанну
     command.pop_back(); //стереть пробел
 }
 
-void runTest(const string& test){ //принимает путь, запускает тест, который там лежит.
+string runTest(const string& test){ //принимает путь, запускает тест, который там лежит.
     string s = NPX;
+    s += "tests/";
     s += readFileName(test);
     addCommand(s);
     std::cout << command << "\n";
     std::cout << "npx output: \n";
-    string r = exec(command.c_str());
-    std::cout << r << "\n";
+    string r = liveExec(command.c_str());
     removeLastCommand();
+    return r;
 }
 
 void mkdir(const string &name){ //создает директорию с именем name в текущей рабочей папке. Не переходит туда.
@@ -128,12 +134,6 @@ void mkdir(const string &name){ //создает директорию с име�
     addCommand(c);
     system(command.c_str());
     removeLastCommand();
-}
-
-void runAllTests(){ //запускает все тесты в текущей рабчоей папке
-    for (auto &p : fs::directory_iterator(chosen)){
-        runTest(p.path().string());
-    }
 }
 
 void removeTemplate(const string& name){ //удаляет шаблон по названию
@@ -145,5 +145,13 @@ void removeTemplate(const string& name){ //удаляет шаблон по на
     //std::cout << command << "\n";
     system(command.c_str());
     templs.erase(name);
+    removeLastCommand();
+}
+
+void openLastReport(){
+    addCommand("cd ..");
+    addCommand("npx playwright show-report");
+    system(command.c_str());
+    removeLastCommand();
     removeLastCommand();
 }
