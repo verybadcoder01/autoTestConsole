@@ -66,8 +66,8 @@ static napi_value mkdir(napi_env env, napi_callback_info info){
 }
 
 static napi_value runTest(napi_env env, napi_callback_info info){
-  runTest(getArgString(env, info, 1)[0]);
-  napi_value result;
+  string s = runTest(getArgString(env, info, 1)[0]);
+  napi_value result = getArrayOfString(env, {s});
   return result;
 }
 
@@ -119,14 +119,20 @@ static napi_value runAllTestsInTemplate(napi_env env, napi_callback_info info){ 
   if (templs.find(args[0]) == templs.end()){
     throw std::runtime_error("template with this name does not exist");
   }
-  templs[args[0]].runAllIncluded();
-  napi_value result;
+  vector<string> tmp = templs[args[0]].runAllIncluded();
+  napi_value result = getArrayOfString(env, tmp);
   return result;
 }
 
 static napi_value deleteTemplate(napi_env env, napi_callback_info info){ //удаляет шаблон
   string arg = getArgString(env, info, 1)[0];
   removeTemplate(arg);
+  napi_value result;
+  return result;
+}
+
+static napi_value openLastReport(napi_env env, napi_callback_info info){
+  openLastReport();
   napi_value result;
   return result;
 }
@@ -164,6 +170,8 @@ static napi_value Init(napi_env env, napi_value exports) {
   status = napi_define_properties(env, exports, 1, &desc12);
   napi_property_descriptor desc13 = DECLARE_NAPI_METHOD("removeTest", removeExistingTest);
   status = napi_define_properties(env, exports, 1, &desc13);
+  napi_property_descriptor desc14 = DECLARE_NAPI_METHOD("openLastReport", openLastReport);
+  status = napi_define_properties(env, exports, 1, &desc14);
   assert(status == napi_ok);
   return exports;
 }
