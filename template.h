@@ -6,6 +6,7 @@ using std::string;
 using fs::path;
 
 const string INFORMATION = "templates.txt";
+const char LINE_SEPARATOR = ':', TEST_SEPARATOR = ';';
 
 //forward declaration (это плохо?)
 extern const path B2C_TESTS, B2B_SMOKE, B2B_REGRESS;
@@ -73,12 +74,12 @@ struct Template
                 prevContent.push_back(curLine);
             }
             if (isPrevLine){
-                int tmp = curLine.find(';'); //ищем название последнего теста
+                int tmp = curLine.find(TEST_SEPARATOR); //ищем название последнего теста
                 if (tmp != string::npos){
                     isFound = true;
                 }
                 if (!isFound){ //в этом шаблоне еще нет тестов
-                    if (curLine.find(':') != string::npos){
+                    if (curLine.find(LINE_SEPARATOR) != string::npos){
                         isFound = true;
                     } else {
                         throw std::runtime_error("templates.txt has been corrupted"); //нет строки с тестами после имени файла, что-то пошло не так
@@ -86,7 +87,7 @@ struct Template
                 }
             }
             if (curLine[0] == 'n'){
-                string cur = curLine.substr(curLine.find(':') + 1); //находим имя
+                string cur = curLine.substr(curLine.find(LINE_SEPARATOR) + 1); //находим имя
                 if (cur == name){
                     isPrevLine = true; //названия тестов всегда идут после имени шаблона
                 }
@@ -101,7 +102,7 @@ struct Template
                 out << prevContent[i];
             }
         }
-        out << test << ";\n";
+        out << test << TEST_SEPARATOR << "\n";
         for (const auto& i : nextContent){
             out << i << "\n";
         }
@@ -109,32 +110,32 @@ struct Template
     }
 
     void removeExistingTest(const string& test){
-        if (find(includedTests.begin(), includedTests.end(), test) == includedTests.end()){
+        if (find(includedTests.begin(), includedTests.end(), test) == includedTests.end()){ //теста нет - ничего делать не нужно
             return;
         }
         includedTests.erase(find(includedTests.begin(), includedTests.end(), test));
         std::ifstream in(INFORMATION);
         string curLine;
         bool isPrevLine = false;
-        std::vector<string> content;
+        std::vector<string> content; //содержимое файла
         while (getline(in, curLine)){
             if (isPrevLine){
-                int pos = curLine.find(test);
+                int pos = curLine.find(test); //мы на нужной строчке, ищем подстроку с названием теста
                 if (pos == string::npos){
                     throw std::runtime_error("templates.txt has been corrupted");
                 }
                 string result;
                 for (int i = 0; i < (int)curLine.size(); ++i){
-                    if (i >= pos && i <= pos + (int)test.size()){
+                    if (i >= pos && i <= pos + (int)test.size()){ //пока мы идем по названию теста, не добавляем символы в строку
                         continue;
                     }
-                    result.push_back(curLine[i]);
+                    result.push_back(curLine[i]); //а тут добавляем
                 }
                 content.push_back(result);
-                isPrevLine = false;
+                isPrevLine = false; //больше ничего убирать не надо, осталось пройти по файлу и сохранить все
             } else {
-                if (curLine[0] == 'n'){
-                    string cur = curLine.substr(curLine.find(':') + 1);
+                if (curLine[0] == 'n'){ //имя - первая строка в описании шаблона
+                    string cur = curLine.substr(curLine.find(LINE_SEPARATOR) + 1);
                     if (cur == name){
                         isPrevLine = true;
                     }
@@ -143,8 +144,8 @@ struct Template
             }
         }
         in.close();
-        std::ofstream out(INFORMATION);
-        for (const auto& i : content){
+        std::ofstream out(INFORMATION); //теперь в content лежит все, кроме названия нашего теста
+        for (const auto& i : content){ //выводим в файл
             out << i << "\n";
         }
         out.close();
@@ -157,12 +158,12 @@ struct Template
         addCommand("cd ..");
         string alltests;
         string res;
-        for (const auto &str : includedTests){
+        for (const auto &str : includedTests){ //запихаем все тесты в одну строку
             alltests += "tests/";
             alltests += str;
             alltests += " ";
         }
-        res = runTest(alltests);
+        res = runTest(alltests); //и запустим в одну команду
         removeLastCommand();
         return res;
     }
@@ -172,7 +173,7 @@ struct Template
         out << "name:" << name << "\n";
         out << "includedTests:";
         for (int i = 0; i < (int)includedTests.size(); ++i){
-            out << includedTests[i] << ";";
+            out << includedTests[i] << TEST_SEPARATOR;
         }
         out << "\n";
         out << "baseDir:" << baseDir.string();
@@ -187,18 +188,18 @@ struct Template
         }
         string curLine;
         bool isFound = false;
-        std::vector <string> content;
+        std::vector <string> content; //содержимое файла
         while (getline(in, curLine)){
             if (isFound){
-                if (curLine[0] == 'n'){
+                if (curLine[0] == 'n'){ //мы дошли до описания следующего шаблона
                     isFound = false;
                     content.push_back(curLine);
                 } else {
-                    continue;
+                    continue; //мы в описании нашего шаблона, пропускаем
                 }
             } else {
-                if (curLine[0] == 'n'){
-                    string cur = curLine.substr(curLine.find(':') + 1);
+                if (curLine[0] == 'n'){ //название - первая строка в описании
+                    string cur = curLine.substr(curLine.find(LINE_SEPARATOR) + 1); //получаем название
                     if (cur == name){
                         isFound = true;
                         continue;
@@ -208,8 +209,8 @@ struct Template
             }
         }
         in.close();
-        std::ofstream out(INFORMATION);
-        for (const auto& i : content){
+        std::ofstream out(INFORMATION); //теперь в content лежит все, кроме нашего шаблона
+        for (const auto& i : content){ //выводим все в файл
             out << i << "\n";
         }
         out.close();
