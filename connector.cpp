@@ -144,6 +144,12 @@ static napi_value findStoredTempls(napi_env env, napi_callback_info info){
   return result;
 }
 
+static napi_value deleteFile(napi_env env, napi_callback_info info){
+  deleteFile(getArgString(env, info, 1)[0]);
+  napi_value result;
+  return result;
+}
+
 //дефайн для удобства
 #define DECLARE_NAPI_METHOD(name, func) \
   { name, 0, func, 0, 0, 0, napi_default, 0 }
@@ -181,6 +187,8 @@ static napi_value Init(napi_env env, napi_value exports) {
   status = napi_define_properties(env, exports, 1, &desc14);
   napi_property_descriptor desc15 = DECLARE_NAPI_METHOD("setup", findStoredTempls);
   status = napi_define_properties(env, exports, 1, &desc15);
+  napi_property_descriptor desc16 = DECLARE_NAPI_METHOD("deleteFile", deleteFile);
+  status = napi_define_properties(env, exports, 1, &desc16);
   assert(status == napi_ok);
   return exports;
 }
