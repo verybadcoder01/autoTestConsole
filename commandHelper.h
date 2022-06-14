@@ -152,7 +152,7 @@ void openLastReport(){
 }
 
 void findStoredTemplates(){
-    std::ifstream in("templates.txt");
+    std::ifstream in(INFORMATION);
     if (!in){
         throw std::runtime_error("templates.txt not found. Something has gone horribly wrong");
     }
@@ -160,19 +160,19 @@ void findStoredTemplates(){
     std::vector <string> curTests;
     while(getline(in, curLine)){
         if (curLine[0] == 'n'){ //n for "name"
-            curName = curLine.substr(curLine.find(':') + 1);
+            curName = curLine.substr(curLine.find(LINE_SEPARATOR) + 1);
         } else if (curLine[0] == 'i'){ //i for "includedTests" aka все тесты, бывшие в шаблоне
-            int pos = curLine.find(':') + 1;
+            int pos = curLine.find(LINE_SEPARATOR) + 1;
             string tmp;
             for (; pos < (int)curLine.size(); ++pos){
-                if (curLine[pos] == ';'){ //сепаратор. Названия тестов разделяются ;
+                if (curLine[pos] == TEST_SEPARATOR){ //сепаратор. Названия тестов разделяются ;
                     curTests.push_back(tmp);
                     tmp.clear();
                 }
                 tmp.push_back(curLine[pos]);
             }
         } else if (curLine[0] == 'b'){ //b for "baseDir"; это последняя строка в описании шаблона. Теперь его можно создавать
-            curBaseDir = curLine.substr(curLine.find(':') + 1);
+            curBaseDir = curLine.substr(curLine.find(LINE_SEPARATOR) + 1);
             templs[curName] = Template(curName, curTests, curBaseDir); //этот контструктор не вызывает создание информации
             curTests.clear();
         }
