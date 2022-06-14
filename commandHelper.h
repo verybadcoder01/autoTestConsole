@@ -7,7 +7,7 @@
 #include <map>
 #include <unistd.h>
 #include "template.h"
-//TODO: потестировать имеющийся функционал; начать делать авторизацию в гитлабе;
+//TODO: начать делать авторизацию в гитлабе;
 
 #if (defined(_POSIX_VERSION))
 #define _popen popen
@@ -75,7 +75,7 @@ string exec(const char* cmd) { //запускает команду и возвр
     return result;
 }
 
-string liveExec(const char* cmd){ //horrible!
+string liveExec(const char* cmd){ //запускает команду, возвращает результат. Также пишет его в консоль
     std::array<char, 128> buffer;
     string result;
     std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
@@ -176,5 +176,14 @@ void findStoredTemplates(){
             templs[curName] = Template(curName, curTests, curBaseDir); //этот контструктор не вызывает создание информации
             curTests.clear();
         }
+    }
+}
+
+void deleteFile(const string& name){
+    addCommand("rm " + name);
+    system(command.c_str());
+    removeLastCommand();
+    for (auto& elem : templs){
+        elem.second.removeExistingTest(name);
     }
 }
