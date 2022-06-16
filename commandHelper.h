@@ -23,7 +23,7 @@ using std::wstring;
 using fs::path;
 //относительные пути
 const path B2C_TESTS = "b2c_tests_pw/tests";
-const path B2B_REGRESS = "b2b_tests_pw/regress b2b/tests";
+const path B2B_REGRESS = "b2b_tests_pw/regress_b2b/tests";
 const path B2B_SMOKE = "b2b_tests_pw/smoke_b2b/tests";
 const string NPX = "npx playwright test ";
 string command; //что мы запустим при следующем вызове system()
@@ -168,8 +168,9 @@ void findStoredTemplates(){
                 if (curLine[pos] == TEST_SEPARATOR){ //сепаратор. Названия тестов разделяются ;
                     curTests.push_back(tmp);
                     tmp.clear();
+                } else {
+                    tmp.push_back(curLine[pos]);
                 }
-                tmp.push_back(curLine[pos]);
             }
         } else if (curLine[0] == 'b'){ //b for "baseDir"; это последняя строка в описании шаблона. Теперь его можно создавать
             curBaseDir = curLine.substr(curLine.find(LINE_SEPARATOR) + 1);
@@ -179,11 +180,18 @@ void findStoredTemplates(){
     }
 }
 
-void deleteFile(const string& name){
+void deleteFile(const string& name){ //удаляет файл с именем name из текущей рабочей папки
     addCommand("rm " + name);
     system(command.c_str());
     removeLastCommand();
-    for (auto& elem : templs){
+    for (auto& elem : templs){ //надо удалить этот файл из всех шаблонов
         elem.second.removeExistingTest(name);
     }
+}
+
+string sshKeygen(){
+    system("ssh-keygen");
+    system("cd /home/vscode/.ssh");
+    string res = exec("cat id_rsa.pub");
+    return res;
 }
