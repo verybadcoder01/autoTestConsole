@@ -116,7 +116,10 @@ static napi_value run(napi_env env, napi_callback_info info){ //запускае
 
 static napi_value runAllTestsInTemplate(napi_env env, napi_callback_info info){ //запускает все тесты в шаблоне
   vector<string> args = getArgString(env, info, 1);
+  const char* msg = "template with this name does not exist";
+  const char* code = "1";
   if (templs.find(args[0]) == templs.end()){
+    //napi_throw_error(env, code, msg);
     throw std::runtime_error("template with this name does not exist");
   }
   string t = templs[args[0]].runAllIncluded();
@@ -157,6 +160,13 @@ static napi_value getTestsInTemplate(napi_env env, napi_callback_info info){
     res.push_back(elem);
   }
   return getArrayOfString(env, res);
+}
+
+static napi_value gitClone(napi_env env, napi_callback_info info){
+  vector<string> arg = getArgString(env, info, 3); //(user, passwrod, link);
+  string res = gitClone(arg[0], arg[1], arg[2]);
+  vector<string> t = {res};
+  return getArrayOfString(env, t);
 }
 
 //дефайн для удобства
@@ -200,6 +210,8 @@ static napi_value Init(napi_env env, napi_value exports) {
   status = napi_define_properties(env, exports, 1, &desc16);
   napi_property_descriptor desc17 = DECLARE_NAPI_METHOD("getTestsInTemplate", getTestsInTemplate);
   status = napi_define_properties(env, exports, 1, &desc17);
+  napi_property_descriptor desc18 = DECLARE_NAPI_METHOD("gitClone", gitClone);
+  status = napi_define_properties(env, exports, 1, &desc18);
   assert(status == napi_ok);
   return exports;
 }
