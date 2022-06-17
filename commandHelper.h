@@ -7,7 +7,8 @@
 #include <map>
 #include <unistd.h>
 #include "template.h"
-//TODO: начать делать авторизацию в гитлабе;
+//TODO: тестировать работу без ssh ключа
+//автоматическое клонирование: https://user:password@gitlab.rusklimat.ru/user/project.git
 
 #if (defined(_POSIX_VERSION))
 #define _popen popen
@@ -189,9 +190,25 @@ void deleteFile(const string& name){ //удаляет файл с именем n
     }
 }
 
-string sshKeygen(){
+string sshKeygen(){ //неавтоматическое
     system("ssh-keygen");
-    system("cd /home/vscode/.ssh");
-    string res = exec("cat id_rsa.pub");
+    string res = exec("cd /home/vscode/.ssh && cat id_rsa.pub");
+    return res;
+}
+
+string gitClone(const string& user, const string& password, const string& basicLink){
+    int pos = basicLink.find('/');
+    if (pos == string::npos){
+        throw std::runtime_error("link not valid");
+    }
+    string link = basicLink.substr(0, pos + 2); //https://
+    link += user;
+    link += ":";
+    link += password;
+    link += "@";
+    link += basicLink.substr(pos + 2); //gitlab.rusklima.ru/user/project.git
+    string com = "git clone " + link;
+    std::cout << com << "\n";
+    string res = exec(com.c_str());
     return res;
 }
