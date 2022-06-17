@@ -12,9 +12,12 @@
 #include <array>
 #include <unistd.h>
 
-#if (!defined(_WIN32_) && !defined(_WIN32)) || (defined(_POSIX_VERSION))
+#if (defined(_POSIX_VERSION))
 #define _popen popen
 #define _pclose pclose
+#include "parser.h"
+#elif (defined(_WIN32) || defined(_WIN32_))
+#include "winFunctions.h"
 #endif
 
 namespace fs = std::filesystem;
@@ -22,9 +25,9 @@ using std::string;
 using std::wstring;
 using fs::path;
 
-const path B2C_TESTS = "C:\\Users\\yanbuhtin_d\\b2c_tests_pw\\tests";
-const path B2B_REGRESS = "C:\\Users\\yanbuhtin_d\\b2b_tests_pw\\regress b2b\\tests";
-const path B2B_SMOKE = "C:\\Users\\yanbuhtin_d\\b2b_tests_pw\\smoke_b2b\\tests";
+const path B2C_TESTS = "b2c_tests_pw/tests";
+const path B2B_REGRESS = "b2b_tests_pw/regress b2b/tests";
+const path B2B_SMOKE = "b2b_tests_pw/smoke_b2b/tests";
 
 string command; //что мы запустим при следующем вызове system()
 
@@ -69,9 +72,7 @@ void addCommand(const string& add){
     if (!command.empty()){
         command += " && ";
     }
-    for (auto elem : add){
-        command.push_back(elem);
-    }
+    command += add;    
 }
 
 void removeLastCommand(){
@@ -124,7 +125,69 @@ void mkdir(const string &name){
     removeLastCommand();
 }
 
+template <class T> void printType(const T&)
+{
+    std::cout << __PRETTY_FUNCTION__ << "\n";
+}
+
+string sshKeygen(){
+    system("ssh-keygen\n\n");
+    system("cd /home/vscode/.ssh");
+    string res = exec("cat id_rsa.pub");
+    return res;
+}
+
+string gitClone(const string& user, const string& password, const string& basicLink){
+    int pos = basicLink.find('/');
+    if (pos == string::npos){
+        throw std::runtime_error("link not valid");
+    }
+    string link = basicLink.substr(0, pos + 2);
+    link += user;
+    link += ":";
+    link += password;
+    link += "@";
+    link += basicLink.substr(pos + 2);
+    string com = "git clone " + link;
+    std::cout << com << "\n";
+    string res = exec(com.c_str());
+    return res;
+}
+
+static bool keepRunning = true;
+
+void intHandler(int) {
+    std::cout << "want to quit for sure?\n";
+    char c;
+    std::cin >> c;
+    if (c == 'y'){
+        keepRunning = false;
+    }
+}
+
+void stop(){
+    struct sigaction act;
+    act.sa_handler = intHandler;
+    sigaction(SIGINT, &act, NULL);
+}
+
 int main(){
-    std::cout << _POSIX_VERSION;
+    // setlocale(LC_ALL, "russian");
+    // chooseTests("b2c");
+    // resetStreamOrientation();
+    // string test = "menu.spec.ts";
+    // string x = "ярусский";
+    // std::cout << x << "\n";
+    // std::vector<string> v = winParser((chosen / test).string()).getAllTests();
+    // for (auto &elem : v){
+    //     std::cout << elem << std::endl;
+    // }
+    int i = 0;
+    while (keepRunning){
+        stop();
+        std::cout << "going through loop " << i << "\n";
+        sleep(10);
+        i++;
+    }
     return 0;
 }
