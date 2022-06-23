@@ -6,8 +6,10 @@
 #include <assert.h>
 #include <map>
 #include <unistd.h>
+#include <future>
+#include <thread>
 #include "template.h"
-//TODO: тестировать работу без ssh ключа
+//TODO: aaaaaaaaaaaaaa
 //автоматическое клонирование: https://user:password@gitlab.rusklimat.ru/user/project.git
 
 #if (defined(_POSIX_VERSION))
@@ -117,6 +119,30 @@ void removeLastCommand(){ //удаляет последнюю записанну
     command.pop_back(); //стереть пробел
 }
 
+void killAll(const string& arg){ //убивает все процессы с подстрокой arg
+    string s = exec(string("pgrep -f \"" + arg + "\"").c_str());
+    string tmp;
+    for (int i = 0; i < (int)s.size(); ++i){
+        int j = i;
+        while (j < (int)s.size() && isdigit(s[j])){
+            tmp.push_back(s[j]);
+            j++;
+        }
+        i = j;
+        if (!tmp.empty()){
+            std::cout << exec(string("kill " + tmp).c_str()) << "\n";
+            tmp.clear();
+        }
+    }
+}
+
+void stop(){ //достаем катану
+    std::cout << "stopping\n";
+    killAll("npm exec"); //режущий слева
+    killAll("test tests/"); //рубящий сверху
+    killAll("chromium"); //режущий справа
+}
+
 string runTest(const string& test){ //принимает путь, запускает тест, который там лежит.
     string s = NPX;
     s += test;
@@ -124,6 +150,7 @@ string runTest(const string& test){ //принимает путь, запуск�
     std::cout << command << "\n";
     std::cout << "npx output: \n";
     string r = liveExec(command.c_str());
+    sleep(3);
     removeLastCommand();
     return r;
 }
@@ -140,6 +167,8 @@ void removeTemplate(const string& name){ //удаляет шаблон по на
     if (templs.find(name) == templs.end()){ //удалять нечего
         throw std::runtime_error("template with this name does not exist");
     }
+    addCommand(string("rm -rf " + name));
+    system(command.c_str());
     templs[name].removeInformation();
     templs.erase(name);
 }
@@ -185,12 +214,9 @@ void deleteFile(const string& name){ //удаляет файл с именем n
     addCommand("rm " + name);
     system(command.c_str());
     removeLastCommand();
-    for (auto& elem : templs){ //надо удалить этот файл из всех шаблонов
-        elem.second.removeExistingTest(name);
-    }
 }
 
-string sshKeygen(){ //неавтоматическое
+string sshKeygen(){
     system("ssh-keygen");
     string res = exec("cd /home/vscode/.ssh && cat id_rsa.pub");
     return res;
@@ -201,12 +227,12 @@ string gitClone(const string& user, const string& password, const string& basicL
     if (pos == string::npos){
         throw std::runtime_error("link not valid");
     }
-    string link = basicLink.substr(0, pos + 2); //https://
+    string link = basicLink.substr(0, pos + 2);
     link += user;
     link += ":";
     link += password;
     link += "@";
-    link += basicLink.substr(pos + 2); //gitlab.rusklima.ru/user/project.git
+    link += basicLink.substr(pos + 2);
     string com = "git clone " + link;
     std::cout << com << "\n";
     string res = exec(com.c_str());
