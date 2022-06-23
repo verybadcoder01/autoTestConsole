@@ -2,13 +2,21 @@
 #include <string>
 #include <assert.h>
 #include <node_api.h>
+#include <napi.h>
 #include <vector>
 #include "commandHelper.h"
+#include "asyncWorker.h"
 using std::string, std::vector;
 
 vector<string> getArgString(napi_env env, napi_callback_info info, size_t argc){ //возвращает строки, переданные в js-функции в качестве аргумента
   napi_value args[argc];
+  size_t prev = argc;
   napi_get_cb_info(env, info, &argc, args, NULL, NULL);
+  if (prev < argc){
+    napi_throw_error(env, NULL, "too many arguments provided");
+  } else if (prev > argc){
+    napi_throw_error(env, NULL, "too much arguments provided");
+  }
   vector<string> res;
   for (int i = 0; i < argc; ++i){
     char* choice; //напи, увы, не умеет просто так в std::string
@@ -65,10 +73,28 @@ static napi_value mkdir(napi_env env, napi_callback_info info){
   return result;
 }
 
-static napi_value runTest(napi_env env, napi_callback_info info){
-  string s = runTest(getArgString(env, info, 1)[0]);
-  napi_value result = getArrayOfString(env, {s});
-  return result;
+static napi_value runTest(napi_env env, napi_callback_info info){// пока не работает 
+  string arg = getArgString(env, info, 1)[0];
+  napi_value promise;
+  napi_status status;
+  promData *tmp = (promData*)malloc(sizeof(promData));
+  tmp->asyncStatus = 1;
+  std::cout << "starting\n";
+  std::ofstream out(TEMPLATE);
+  out << arg;
+  out.close();
+  status = napi_create_promise(env, &tmp->deferred, &promise);
+  if (status != napi_ok){
+    napi_throw_error(env, NULL, "Unable to create promise.");
+  }
+  napi_value name;
+  string n = "runTest";
+  napi_create_string_utf8(env, n.c_str(), n.size(), &name);
+  status = napi_create_async_work(env, NULL, name, execute, finishPromise, tmp, &tmp->work);
+  assert(status == napi_ok);
+  napi_queue_async_work(env, tmp->work);
+  std::cout << "done\n";
+  return promise;
 }
 
 static napi_value printTests(napi_env env, napi_callback_info info){
@@ -114,18 +140,31 @@ static napi_value run(napi_env env, napi_callback_info info){ //запускае
   return result;
 }
 
-static napi_value runAllTestsInTemplate(napi_env env, napi_callback_info info){ //запускает все тесты в шаблоне
+static napi_value runTestsInTemplate(napi_env env, napi_callback_info info){ //запускает все тесты в шаблоне
+  napi_value promise;
+  napi_status status;
+  promData *tmp = (promData*)malloc(sizeof(promData));
+  tmp->asyncStatus = 1;
+  std::cout << "starting\n";
   vector<string> args = getArgString(env, info, 1);
-  const char* msg = "template with this name does not exist";
-  const char* code = "1";
   if (templs.find(args[0]) == templs.end()){
-    //napi_throw_error(env, code, msg);
     throw std::runtime_error("template with this name does not exist");
   }
-  string t = templs[args[0]].runAllIncluded();
-  vector<string> tmp = {t};
-  napi_value result = getArrayOfString(env, tmp);
-  return result;
+  std::ofstream out(TEMPLATE);
+  out << args[0];
+  out.close();
+  status = napi_create_promise(env, &tmp->deferred, &promise);
+  if (status != napi_ok){
+    napi_throw_error(env, NULL, "Unable to create promise.");
+  }
+  napi_value name;
+  string n = "runTestsInTemplate";
+  napi_create_string_utf8(env, n.c_str(), n.size(), &name);
+  status = napi_create_async_work(env, NULL, name, executeInTempl, finishPromise, tmp, &tmp->work);
+  assert(status == napi_ok);
+  napi_queue_async_work(env, tmp->work);
+  std::cout << "done\n";
+  return promise;
 }
 
 static napi_value deleteTemplate(napi_env env, napi_callback_info info){ //удаляет шаблон
@@ -155,11 +194,7 @@ static napi_value deleteFile(napi_env env, napi_callback_info info){
 
 static napi_value getTestsInTemplate(napi_env env, napi_callback_info info){
   string arg = getArgString(env, info, 1)[0];
-  vector<string> res;
-  for (const auto& elem : templs[arg].includedTests){
-    res.push_back(elem);
-  }
-  return getArrayOfString(env, res);
+  return getArrayOfString(env, templs[arg].includedTests);
 }
 
 static napi_value gitClone(napi_env env, napi_callback_info info){
@@ -167,6 +202,50 @@ static napi_value gitClone(napi_env env, napi_callback_info info){
   string res = gitClone(arg[0], arg[1], arg[2]);
   vector<string> t = {res};
   return getArrayOfString(env, t);
+}
+
+static napi_value stopTests(napi_env env, napi_callback_info info){
+  stop();
+  napi_value result;
+  return result;
+}
+
+static napi_value copyTemplate(napi_env env, napi_callback_info info){
+  vector<string> args = getArgString(env, info, 2);
+  if (templs.find(args[0]) == templs.end()){
+    throw std::runtime_error("source doesnt exist");
+  }
+  if (templs.find(args[1]) != templs.end()){
+    napi_value result;
+    return result;
+  }
+  Template from = templs[args[0]];
+  templs[args[1]] = Template(chosen, args[1]);
+  Template to = templs[args[1]];
+  for (const auto& elem : from.includedTests){
+    int sz = getFileNames(chosen).size();
+    from.copyToBaseDir(elem);
+    shortenAllPaths(chosen, elem);
+    to.addExistingTest(elem);
+    if (sz != getFileNames(chosen).size()){
+      deleteFile(elem);
+    }
+  }
+  napi_value result;
+  return result;
+}
+
+static napi_value renameFile(napi_env env, napi_callback_info info){
+  std::vector<string> args = getArgString(env, info, 3);
+  std::string pref = args[2];
+  if (pref != ""){
+    pref += "/";
+  }
+  addCommand(string("mv " + pref + args[0] + " " + pref + args[1]));
+  exec(command.c_str());
+  removeLastCommand();
+  napi_value result;
+  return result;
 }
 
 //дефайн для удобства
@@ -196,7 +275,7 @@ static napi_value Init(napi_env env, napi_value exports) {
   status = napi_define_properties(env, exports, 1, &desc9);
   napi_property_descriptor desc10 = DECLARE_NAPI_METHOD("addExistingTest", addExistingTest);
   status = napi_define_properties(env, exports, 1, &desc10);
-  napi_property_descriptor desc11 = DECLARE_NAPI_METHOD("runTestsInTemplate", runAllTestsInTemplate);
+  napi_property_descriptor desc11 = DECLARE_NAPI_METHOD("runTestsInTemplate", runTestsInTemplate);
   status = napi_define_properties(env, exports, 1, &desc11);
   napi_property_descriptor desc12 = DECLARE_NAPI_METHOD("deleteTemplate", deleteTemplate);
   status = napi_define_properties(env, exports, 1, &desc12);
@@ -212,6 +291,12 @@ static napi_value Init(napi_env env, napi_value exports) {
   status = napi_define_properties(env, exports, 1, &desc17);
   napi_property_descriptor desc18 = DECLARE_NAPI_METHOD("gitClone", gitClone);
   status = napi_define_properties(env, exports, 1, &desc18);
+  napi_property_descriptor desc19 = DECLARE_NAPI_METHOD("stopTests", stopTests);
+  status = napi_define_properties(env, exports, 1, &desc19);
+  napi_property_descriptor desc20 = DECLARE_NAPI_METHOD("copyTemplate", copyTemplate);
+  status = napi_define_properties(env, exports, 1, &desc20);
+  napi_property_descriptor desc21 = DECLARE_NAPI_METHOD("renameFile", renameFile);
+  status = napi_define_properties(env, exports, 1, &desc21);
   assert(status == napi_ok);
   return exports;
 }
