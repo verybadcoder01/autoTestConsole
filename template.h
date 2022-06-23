@@ -17,6 +17,7 @@ void mkdir(const string &name);
 string runTest(const string& test);
 void addCommand(const string& add);
 void removeLastCommand();
+void deleteFile(const string& name);
 //end of forward declarations
 
 void chooseTestsWrappper(const path& p){
@@ -29,6 +30,66 @@ void chooseTestsWrappper(const path& p){
     } else {
         assert(false);
     }
+}
+
+void adjustIncludePath(string& l){
+    if (l.find("import") == string::npos || l.find("@playwright/") != string::npos){
+        return;
+    }
+    const string add = "../";
+    size_t pos = l.find(add);
+    if (pos != l.rfind(add)){ //два уровня вложенности уже есть, больше не надо
+        return;
+    }
+    if (pos != string::npos){
+        l.insert(pos, add);
+    }
+}
+
+void shortenIncludePath(string& l){
+    if (l.find("import") == string::npos || l.find("@playwright/") != string::npos){
+        return;
+    }
+    const string add = "../";
+    size_t pos = l.find(add);
+    if (pos == l.find_last_of(add)){ //один уровень вложенности, ничего убирать не надо
+        return;
+    }
+    if (pos != string::npos){
+        l.replace(pos, add.size(), "");
+    }
+}
+
+void shortenAllPaths(const path& baseDir, const string& test){
+    std::ifstream infile(baseDir.string() + "/" + test); //парсим сам файл - надо изменить инклюд пути
+    string line;
+    std::vector<string> data;
+    while (getline(infile, line)){
+        shortenIncludePath(line);
+        data.push_back(line);
+    }
+    infile.close();
+    std::ofstream outfile(baseDir.string() + "/" + test);
+    for (const auto &str: data){
+        outfile << str << "\n";
+    }
+    outfile.close();
+}
+
+void adjustAllPaths(const path& baseDir, const string& name, const string& test){
+    std::ifstream infile(baseDir.string() + "/" + name + "/" + test); //парсим сам файл - надо изменить инклюд пути
+    string line;
+    std::vector<string> data;
+    while (getline(infile, line)){
+        adjustIncludePath(line);
+        data.push_back(line);
+    }
+    infile.close();
+    std::ofstream outfile(baseDir.string() + "/" + name + "/" + test);
+    for (const auto &str: data){
+        outfile << str << "\n";
+    }
+    outfile.close();
 }
 
 struct Template
@@ -46,6 +107,7 @@ struct Template
         name = _name;
         chooseTestsWrappper(baseDir);
         generateSelfDescribingFile();
+        mkdir(name);
     }
 
     Template(const string& enumedName, const string& _name){
@@ -53,16 +115,25 @@ struct Template
         chooseTests(enumedName);
         baseDir = chosen;
         generateSelfDescribingFile();
+        mkdir(name);
     }
 
-    Template(const string& _name, const std::vector<string> &tests, const path& _baseDir) : name(_name), includedTests(tests), baseDir(_baseDir) {};
+    Template(const string& _name, const std::vector<string> &tests, const path& _baseDir) : name(_name), includedTests(tests), baseDir(_baseDir) {
+        addCommand("cd " + _baseDir.string());
+        mkdir(name);
+        removeLastCommand();
+    };
 
     void addExistingTest(const string& test){
         if (find(includedTests.begin(), includedTests.end(), test) != includedTests.end()){ //если тест уже есть - ничего не делаем
             return;
         }
+        addCommand(string("cp " + test + " " + name));
+        system(command.c_str());
+        removeLastCommand();
+        adjustAllPaths(baseDir, name, test);
         includedTests.push_back(test);
-        std::ifstream in(INFORMATION);
+        std::ifstream in(INFORMATION); //теперь парсим файл с шаблонами
         bool isPrevLine = false, isFound = false;
         string curLine;
         std::vector<string> prevContent, nextContent;
@@ -113,6 +184,9 @@ struct Template
         if (find(includedTests.begin(), includedTests.end(), test) == includedTests.end()){ //теста нет - ничего делать не нужно
             return;
         }
+        addCommand("cd " + name);
+        deleteFile(test);
+        removeLastCommand();
         includedTests.erase(find(includedTests.begin(), includedTests.end(), test));
         std::ifstream in(INFORMATION);
         string curLine;
@@ -151,24 +225,33 @@ struct Template
         out.close();
     }
     
-    string runAllIncluded(){
+    string runAllIncluded(const std::string& fileName){
         if (includedTests.empty()){
             return "no tests in this template";
         }
         addCommand("cd ..");
         string alltests;
-        string res;
         for (const auto &str : includedTests){ //запихаем все тесты в одну строку
             alltests += "tests/";
+            alltests += name + "/";
             alltests += str;
             alltests += " ";
         }
-        res = runTest(alltests); //и запустим в одну команду
+        string res = runTest(alltests); //и запустим в одну команду
         removeLastCommand();
+        std::ofstream out(fileName);
+        out << res;
+        out.close();
         return res;
     }
 
-    void generateSelfDescribingFile(){ //добавляет шаблон в файл templates.txt в виде name:<name>, includedTests:<test1; test2; ...>, baseDir:<baseDir>
+    void copyToBaseDir(const std::string& file){
+        addCommand(string("cp " + name + "/" + file + " ."));
+        system(command.c_str());
+        removeLastCommand();
+    }
+
+    void generateSelfDescribingFile(){ //добавляет шаблон в файл templates.txt в виде name:<name>, includedTests:<test1;test2;...>, baseDir:<baseDir>
         std::ofstream out(INFORMATION, std::ios_base::app);
         out << "name:" << name << "\n";
         out << "includedTests:";
@@ -186,6 +269,9 @@ struct Template
         if (!in){
             throw std::runtime_error("templates.txt does not exist. Something has gone horribly wrong");
         }
+        addCommand("rm -rf " + name);
+        system(command.c_str());
+        removeLastCommand();
         string curLine;
         bool isFound = false;
         std::vector <string> content; //содержимое файла
